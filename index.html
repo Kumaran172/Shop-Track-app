@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Billing & Sales Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ShopTrack" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ===== AUTH WRAPPER ===== -->
+  <div id="auth-screen" class="auth-screen">
+
+    <!-- LANDING PAGE -->
+    <div id="auth-landing" class="auth-page active">
+      <div class="auth-brand">
+        <div class="auth-logo">🛍️</div>
+        <h1 class="auth-title">ShopTrack</h1>
+        <p class="auth-tagline">Smart Billing & Sales for small shops</p>
+      </div>
+      <div class="auth-features">
+        <div class="auth-feature"><span>📦</span><span>Manage Products</span></div>
+        <div class="auth-feature"><span>🧾</span><span>Generate Bills</span></div>
+        <div class="auth-feature"><span>📊</span><span>Track Sales</span></div>
+        <div class="auth-feature"><span>🌙</span><span>Light &amp; Dark Mode</span></div>
+      </div>
+      <div class="auth-actions">
+        <button class="btn-auth-primary" onclick="showAuthPage('signup')">Create Account</button>
+        <button class="btn-auth-secondary" onclick="showAuthPage('login')">Sign In</button>
+      </div>
+      <p class="auth-note">100% offline · No internet required</p>
+    </div>
+
+    <!-- SIGNUP PAGE -->
+    <div id="auth-signup" class="auth-page">
+      <button class="auth-back" onclick="showAuthPage('landing')">← Back</button>
+      <div class="auth-brand compact">
+        <div class="auth-logo small">🛍️</div>
+        <h2>Create Account</h2>
+        <p>Set up your shop profile</p>
+      </div>
+      <div class="auth-form-card">
+        <div class="form-group">
+          <label>Shop Name *</label>
+          <input type="text" id="su-shop" placeholder="e.g. Rajan Kirana Store" autocomplete="off"/>
+        </div>
+        <div class="form-group">
+          <label>Owner Name *</label>
+          <input type="text" id="su-owner" placeholder="Your full name" />
+        </div>
+        <div class="form-group">
+          <label>Phone Number *</label>
+          <input type="tel" id="su-phone" placeholder="10-digit mobile number" maxlength="10"/>
+        </div>
+        <div class="form-group">
+          <label>Create PIN *</label>
+          <input type="password" id="su-pin" placeholder="4-digit PIN" maxlength="4" inputmode="numeric"/>
+        </div>
+        <div class="form-group">
+          <label>Confirm PIN *</label>
+          <input type="password" id="su-pin2" placeholder="Re-enter PIN" maxlength="4" inputmode="numeric"/>
+        </div>
+        <button class="btn-full" onclick="handleSignup()">Create Account →</button>
+        <p class="auth-switch">Already have an account? <a onclick="showAuthPage('login')">Sign In</a></p>
+      </div>
+    </div>
+
+    <!-- LOGIN PAGE -->
+    <div id="auth-login" class="auth-page">
+      <button class="auth-back" onclick="showAuthPage('landing')">← Back</button>
+      <div class="auth-brand compact">
+        <div class="auth-logo small">🛍️</div>
+        <h2 id="login-shop-title">Welcome Back</h2>
+        <p id="login-shop-sub">Sign in to your shop</p>
+      </div>
+      <div class="auth-form-card">
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="li-phone" placeholder="Registered phone number" maxlength="10" inputmode="numeric"/>
+        </div>
+        <div class="form-group">
+          <label>PIN</label>
+          <input type="password" id="li-pin" placeholder="4-digit PIN" maxlength="4" inputmode="numeric"/>
+        </div>
+        <button class="btn-full" onclick="handleLogin()">Sign In →</button>
+        <p class="auth-switch">New here? <a onclick="showAuthPage('signup')">Create Account</a></p>
+        <button class="btn-danger-outline" style="margin-top:8px" onclick="handleForgotPin()">Forgot PIN?</button>
+      </div>
+    </div>
+
+  </div>
+  <!-- ===== END AUTH ===== -->
+
+  <!-- ===== MAIN APP (hidden until logged in) ===== -->
+  <div id="app-wrapper" class="hidden">
+
+  <!-- ===== TOAST NOTIFICATION ===== -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ===== TOP HEADER ===== -->
+  <header class="top-header">
+    <div class="header-left">
+      <div class="shop-logo">🛍️</div>
+      <div class="shop-info">
+        <span id="header-shop-name">My Shop</span>
+        <span class="header-sub">Smart Billing</span>
+      </div>
+    </div>
+    <button class="theme-toggle" id="themeToggle" title="Toggle Theme">☀️</button>
+    <button class="logout-btn" onclick="handleLogout()" title="Logout">🚪</button>
+  </header>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content">
+
+    <!-- ========== PRODUCTS PAGE ========== -->
+    <section id="page-products" class="page active">
+      <div class="page-header">
+        <h2>Products</h2>
+        <button class="btn-add" onclick="openAddProductModal()">+ Add</button>
+      </div>
+
+      <div id="product-list" class="product-grid">
+        <!-- Products rendered here -->
+      </div>
+      <div id="no-products" class="empty-state hidden">
+        <div class="empty-icon">📦</div>
+        <p>No products yet.<br/>Tap <strong>+ Add</strong> to get started!</p>
+      </div>
+    </section>
+
+    <!-- ========== BILLING PAGE ========== -->
+    <section id="page-billing" class="page">
+      <div class="page-header">
+        <h2>New Bill</h2>
+        <button class="btn-secondary" onclick="clearCart()">Clear</button>
+      </div>
+
+      <!-- Search + Voice Bar -->
+      <div class="billing-search-bar">
+        <div class="search-input-wrap">
+          <span class="search-icon">&#128269;</span>
+          <input type="text" id="billing-search" placeholder="Search products..." oninput="filterBillingProducts(this.value)" autocomplete="off" />
+          <button class="search-clear-btn hidden" id="search-clear-btn" onclick="clearBillingSearch()">&#x2715;</button>
+        </div>
+        <button class="voice-btn" id="voice-btn" onclick="toggleVoiceSearch()" title="Voice Search">
+          <span id="voice-icon">&#127908;</span>
+        </button>
+      </div>
+
+      <!-- Voice status indicator -->
+      <div id="voice-status" class="voice-status hidden">
+        <div class="voice-pulse"></div>
+        <span id="voice-status-text">Listening... say a product name</span>
+        <button class="voice-stop-btn" onclick="stopVoiceSearch()">Stop</button>
+      </div>
+
+      <!-- Product Cards for billing -->
+      <div id="billing-product-list" class="billing-grid"></div>
+      <div id="billing-no-results" class="empty-state hidden">
+        <div class="empty-icon">&#128269;</div>
+        <p>No products match your search.</p>
+      </div>
+
+      <!-- Cart -->
+      <div class="cart-section" id="cart-section">
+        <h3 class="cart-title">🛒 Cart</h3>
+        <div id="cart-items" class="cart-items"></div>
+        <div id="empty-cart" class="empty-state">
+          <div class="empty-icon">🛒</div>
+          <p>Tap products to add them to cart</p>
+        </div>
+        <div class="cart-total" id="cart-total-section" style="display:none;">
+          <div class="total-row">
+            <span>Total</span>
+            <span id="cart-total-amount" class="total-amount">₹0.00</span>
+          </div>
+          <button class="btn-generate" onclick="generateBill()">🧾 Generate Bill</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== DASHBOARD PAGE ========== -->
+    <section id="page-dashboard" class="page">
+      <div class="page-header">
+        <h2>Dashboard</h2>
+      </div>
+
+      <!-- Income Cards -->
+      <div class="stats-grid">
+        <div class="stat-card accent-green">
+          <div class="stat-label">Today</div>
+          <div class="stat-value" id="stat-today">₹0</div>
+        </div>
+        <div class="stat-card accent-blue">
+          <div class="stat-label">Yesterday</div>
+          <div class="stat-value" id="stat-yesterday">₹0</div>
+        </div>
+        <div class="stat-card accent-orange">
+          <div class="stat-label">This Week</div>
+          <div class="stat-value" id="stat-week">₹0</div>
+        </div>
+        <div class="stat-card accent-purple">
+          <div class="stat-label">Total Bills</div>
+          <div class="stat-value" id="stat-bills">0</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="chart-card">
+        <h3>Sales Trend (Last 7 Days)</h3>
+        <canvas id="salesChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Top Products</h3>
+        <canvas id="productChart"></canvas>
+      </div>
+    </section>
+
+    <!-- ========== HISTORY PAGE ========== -->
+    <section id="page-history" class="page">
+      <div class="page-header">
+        <h2>Bill History</h2>
+        <div class="history-actions">
+          <button class="btn-import" onclick="triggerImportBill()" title="Import Bill">📥 Import</button>
+          <button class="btn-danger-sm" onclick="clearAllBills()">Clear All</button>
+        </div>
+      </div>
+      <!-- Hidden file input for import -->
+      <input type="file" id="import-bill-input" accept=".json" class="hidden" onchange="importBill(event)" />
+      <div id="bill-history-list"></div>
+      <div id="no-history" class="empty-state hidden">
+        <div class="empty-icon">🗂️</div>
+        <p>No bills generated yet.</p>
+      </div>
+    </section>
+
+    <!-- ========== PROFILE PAGE ========== -->
+    <section id="page-profile" class="page">
+      <div class="page-header">
+        <h2>Profile</h2>
+      </div>
+
+      <div class="profile-card">
+        <div class="profile-avatar">🏪</div>
+        <div class="profile-display" id="profile-display">
+          <h3 id="display-shop-name">My Shop</h3>
+          <p id="display-owner-name">Owner Name</p>
+          <p id="display-phone">📞 Phone Number</p>
+        </div>
+        <button class="btn-edit" onclick="toggleProfileEdit()">✏️ Edit Profile</button>
+      </div>
+
+      <div class="profile-form hidden" id="profile-form">
+        <div class="form-group">
+          <label>Shop Name</label>
+          <input type="text" id="input-shop-name" placeholder="Enter shop name" />
+        </div>
+        <div class="form-group">
+          <label>Owner Name</label>
+          <input type="text" id="input-owner-name" placeholder="Enter owner name" />
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="input-phone" placeholder="Enter phone number" />
+        </div>
+        <div class="form-row">
+          <button class="btn-save" onclick="saveProfile()">💾 Save</button>
+          <button class="btn-cancel" onclick="toggleProfileEdit()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- App Info -->
+      <div class="app-info-card">
+        <h4>App Info</h4>
+        <div class="info-row"><span>Version</span><span>1.0.0</span></div>
+        <div class="info-row"><span>Storage</span><span id="storage-used">Calculating...</span></div>
+        <div class="info-row"><span>Bills Stored</span><span id="total-bills-info">0</span></div>
+        <button class="btn-danger-outline" onclick="clearAllData()">🗑️ Clear All Data</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== BOTTOM NAVIGATION ===== -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="navigate('products')" id="nav-products">
+      <span class="nav-icon">📦</span>
+      <span class="nav-label">Products</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('billing')" id="nav-billing">
+      <span class="nav-icon">🧾</span>
+      <span class="nav-label">Billing</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Dashboard</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('history')" id="nav-history">
+      <span class="nav-icon">🗂️</span>
+      <span class="nav-label">History</span>
+    </button>
+    <button class="nav-btn" onclick="navigate('profile')" id="nav-profile">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Profile</span>
+    </button>
+  </nav>
+
+  <!-- ===== ADD PRODUCT MODAL ===== -->
+  <div class="modal-overlay hidden" id="add-product-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add Product</h3>
+        <button class="modal-close" onclick="closeAddProductModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input type="text" id="prod-name" placeholder="e.g. Rice, Oil, Biscuit" />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Price (₹) *</label>
+            <input type="number" id="prod-price" placeholder="0.00" min="0" step="0.01" />
+          </div>
+          <div class="form-group flex-1">
+            <label>Unit *</label>
+            <select id="prod-unit">
+              <option value="pcs">pcs</option>
+              <option value="kg">kg</option>
+              <option value="g">grams</option>
+              <option value="L">liters (L)</option>
+              <option value="ml">ml</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Product Image</label>
+          <div class="image-upload-area" onclick="document.getElementById('prod-image').click()">
+            <img id="image-preview" src="" alt="" class="hidden" />
+            <div id="upload-placeholder">
+              <span class="upload-icon">📷</span>
+              <span>Tap to upload image</span>
+            </div>
+          </div>
+          <input type="file" id="prod-image" accept="image/*" class="hidden" onchange="previewImage(event)" />
+        </div>
+        <button class="btn-full" onclick="addProduct()">Add Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BILL DETAIL MODAL ===== -->
+  <div class="modal-overlay hidden" id="bill-detail-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Bill Details</h3>
+        <button class="modal-close" onclick="closeBillModal()">✕</button>
+      </div>
+      <div class="modal-body" id="bill-detail-content"></div>
+      <div class="modal-footer">
+        <button class="btn-download" onclick="downloadBillJSON()">📥 Save JSON</button>
+        <button class="btn-download-pdf" onclick="downloadBillPDF()">🖨️ Print / PDF</button>
+        <button class="btn-share" onclick="shareBill()">🔗 Share</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PRINT FRAME (hidden) ===== -->
+  <div id="print-area" class="hidden"></div>
+
+  </div> <!-- end #app-wrapper -->
+
+  <script src="script.js"></script>
+  <script>
+    // Register Service Worker for PWA offline support
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('[PWA] Service Worker registered:', reg.scope))
+          .catch(err => console.warn('[PWA] SW registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
